@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Greenhouse PID Competition Demo</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #2563eb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1450px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+    }
+
+    .section-title {
+      font-size: 18px;
+      margin: 0 0 12px 0;
+    }
+
+    .control-group {
+      margin-bottom: 16px;
+    }
+
+    .control-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      flex: 1;
+    }
+
+    input[type="number"] {
+      width: 95px;
+      padding: 6px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      background: var(--accent);
+      color: white;
+    }
+
+    button.secondary {
+      background: #475569;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    canvas {
+      width: 100%;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: block;
+    }
+
+    .plot-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .instructions {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #374151;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .note-box {
+      margin-top: 10px;
+      padding: 10px;
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .run-box {
+      margin-top: 12px;
+      padding: 10px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 950px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Greenhouse PID Competition Demo</h1>
+    <div class="subtitle">
+      Tune Kp, Ki, and Kd to control greenhouse temperature over a fixed 24-hour disturbance profile.
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2 class="section-title">Controls</h2>
+
+        <div class="control-group">
+          <label for="kp">Kp</label>
+          <div class="row">
+            <input type="range" id="kp" min="0" max="40" step="0.1" value="6.0" />
+            <input type="number" id="kpNum" min="0" max="40" step="0.1" value="6.0" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="ki">Ki</label>
+          <div class="row">
+            <input type="range" id="ki" min="0" max="3" step="0.01" value="0.10" />
+            <input type="number" id="kiNum" min="0" max="3" step="0.01" value="0.10" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="kd">Kd</label>
+          <div class="row">
+            <input type="range" id="kd" min="0" max="20" step="0.1" value="2.0" />
+            <input type="number" id="kdNum" min="0" max="20" step="0.1" value="2.0" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="setpoint">Setpoint Temperature (°C)</label>
+          <div class="row">
+            <input type="range" id="setpoint" min="18" max="35" step="0.5" value="26" />
+            <input type="number" id="setpointNum" min="18" max="35" step="0.5" value="26" />
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button id="startBtn">Start</button>
+          <button id="resetBtn" class="secondary">Reset</button>
+        </div>
+
+        <div class="run-box">
+          Full 24-hour simulated run time on screen:
+          <b><span id="runDurationLabel">10</span> seconds</b>
+        </div>
+
+        <div class="note-box">
+          Disturbance profile:
+          <br>• Curved sunlight heating through the day
+          <br>• Curved wind cooling around dawn and evening
+          <br>• PID uses derivative on measurement with filtering and anti-windup integral
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Current Temp</div>
+            <div class="stat-value" id="currentTemp">25.00 °C</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Setpoint</div>
+            <div class="stat-value" id="currentSetpoint">26.00 °C</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Heater Output</div>
+            <div class="stat-value" id="heaterOutput">0.0 %</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Cooler Output</div>
+            <div class="stat-value" id="coolerOutput">0.0 %</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Simulated Time</div>
+            <div class="stat-value" id="timeNow">0.0 h</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">IAE</div>
+            <div class="stat-value" id="iaeValue">0.00</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Overshoot Penalty</div>
+            <div class="stat-value" id="overshootValue">0.00</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Control Effort</div>
+            <div class="stat-value" id="effortValue">0.00</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Total Cost J</div>
+            <div class="stat-value" id="costValue">0.00</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Score</div>
+            <div class="stat-value" id="scoreValue">0.00</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="instructions">
+            Winner metric:
+            <br>
+            J = 1.0 × IAE + 2.0 × Overshoot Penalty + 0.2 × Control Effort
+            <br><br>
+            Score = 10000 / (1 + J)
+            <br><br>
+            Lower J is better. Higher Score is better.
+          </div>
+        </div>
+      </div>
+
+      <div class="plot-stack">
+        <div class="card">
+          <h2 class="section-title">Temperature + Disturbances</h2>
+          <canvas id="mainPlot" width="980" height="420"></canvas>
+          <div class="small" style="margin-top:8px;">
+            Solid lines: temperature and setpoint. Dashed lines: sunlight and wind profiles.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Heater Output (%)</h2>
+          <canvas id="heaterPlot" width="980" height="220"></canvas>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Cooler Output (%)</h2>
+          <canvas id="coolerPlot" width="980" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =====================================================
+    // MAIN VARIABLES YOU MAY WANT TO CHANGE
+    // =====================================================
+    const RUN_DURATION_SECONDS = 10;
+
+    const HEATER_EFFECT_SCALE = 10.0;
+    const COOLER_EFFECT_SCALE = 10.0;
+
+    const HEATER_BASE_STRENGTH = 2.0;
+    const COOLER_BASE_STRENGTH = 2.0;
+
+    // Greenhouse dynamics
+    const TOTAL_HOURS = 24.0;
+    const DT_HOURS = 0.02; // 1.2 min per step
+    const AMBIENT_TEMP = 20.0;
+
+    // Plant behavior
+    const ACTUATOR_TIME_CONSTANT_HR = 0.35;
+    const CONTROL_DELAY_HR = 0.35;
+    const PASSIVE_LOSS_COEFF = 0.05;
+    const THERMAL_MASS_FACTOR = 0.55;
+
+    // PID implementation
+    const DERIVATIVE_FILTER_ALPHA = 0.7;
+    const INTEGRAL_MIN = -150;
+    const INTEGRAL_MAX = 150;
+
+    // Derived speed settings
+    const TOTAL_STEPS = Math.ceil(TOTAL_HOURS / DT_HOURS);
+    const TARGET_FPS = 60;
+    const STEPS_PER_FRAME = Math.max(
+      1,
+      Math.ceil(TOTAL_STEPS / (RUN_DURATION_SECONDS * TARGET_FPS))
+    );
+    const CONTROL_DELAY_STEPS = Math.max(1, Math.round(CONTROL_DELAY_HR / DT_HOURS));
+
+    document.getElementById("runDurationLabel").textContent = RUN_DURATION_SECONDS;
+
+    // -----------------------------
+    // DOM
+    // -----------------------------
+    const kp = document.getElementById("kp");
+    const ki = document.getElementById("ki");
+    const kd = document.getElementById("kd");
+    const kpNum = document.getElementById("kpNum");
+    const kiNum = document.getElementById("kiNum");
+    const kdNum = document.getElementById("kdNum");
+    const setpoint = document.getElementById("setpoint");
+    const setpointNum = document.getElementById("setpointNum");
+
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const currentTempEl = document.getElementById("currentTemp");
+    const currentSetpointEl = document.getElementById("currentSetpoint");
+    const heaterOutputEl = document.getElementById("heaterOutput");
+    const coolerOutputEl = document.getElementById("coolerOutput");
+    const timeNowEl = document.getElementById("timeNow");
+    const iaeValueEl = document.getElementById("iaeValue");
+    const overshootValueEl = document.getElementById("overshootValue");
+    const effortValueEl = document.getElementById("effortValue");
+    const costValueEl = document.getElementById("costValue");
+    const scoreValueEl = document.getElementById("scoreValue");
+
+    const mainCanvas = document.getElementById("mainPlot");
+    const heaterCanvas = document.getElementById("heaterPlot");
+    const coolerCanvas = document.getElementById("coolerPlot");
+
+    const mainCtx = mainCanvas.getContext("2d");
+    const heaterCtx = heaterCanvas.getContext("2d");
+    const coolerCtx = coolerCanvas.getContext("2d");
+
+    // -----------------------------
+    // Sync slider-number pairs
+    // -----------------------------
+    function bindPair(slider, numberInput) {
+      slider.addEventListener("input", () => {
+        numberInput.value = slider.value;
+      });
+      numberInput.addEventListener("input", () => {
+        slider.value = numberInput.value;
+      });
+    }
+
+    bindPair(kp, kpNum);
+    bindPair(ki, kiNum);
+    bindPair(kd, kdNum);
+    bindPair(setpoint, setpointNum);
+
+    // -----------------------------
+    // Helpers
+    // -----------------------------
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function gaussian(t, mu, sigma, amp) {
+      return amp * Math.exp(-0.5 * Math.pow((t - mu) / sigma, 2));
+    }
+
+    // -----------------------------
+    // Curved disturbances
+    // -----------------------------
+    function sunlightEffect(hour) {
+      return gaussian(hour, 13.0, 3.0, 4.5);
+    }
+
+    function windEffect(hour) {
+      const dawn = gaussian(hour, 6.0, 2.0, -2.8);
+      const evening = gaussian(hour, 18.5, 2.2, -3.2);
+      return dawn + evening;
+    }
+
+    // -----------------------------
+    // State
+    // -----------------------------
+    let simRunning = false;
+    let animationId = null;
+
+    let simHour = 0.0;
+    let greenhouseTemp = 25.0;
+
+    let heaterCommand = 0.0;
+    let coolerCommand = 0.0;
+
+    let heaterActual = 0.0;
+    let coolerActual = 0.0;
+
+    let controlDelayQueueHeater = [];
+    let controlDelayQueueCooler = [];
+
+    let integral = 0.0;
+    let previousTemp = 25.0;
+    let filteredMeasurementDerivative = 0.0;
+
+    let iae = 0.0;
+    let overshootPenalty = 0.0;
+    let controlEffort = 0.0;
+    let totalCost = 0.0;
+
+    let history = [];
+
+    // -----------------------------
+    // Reset
+    // -----------------------------
+    function resetSimulation() {
+      simRunning = false;
+      cancelAnimationFrame(animationId);
+
+      simHour = 0.0;
+      greenhouseTemp = 25.0;
+
+      heaterCommand = 0.0;
+      coolerCommand = 0.0;
+      heaterActual = 0.0;
+      coolerActual = 0.0;
+
+      controlDelayQueueHeater = Array(CONTROL_DELAY_STEPS).fill(0);
+      controlDelayQueueCooler = Array(CONTROL_DELAY_STEPS).fill(0);
+
+      integral = 0.0;
+      previousTemp = greenhouseTemp;
+      filteredMeasurementDerivative = 0.0;
+
+      iae = 0.0;
+      overshootPenalty = 0.0;
+      controlEffort = 0.0;
+      totalCost = 0.0;
+
+      history = [];
+
+      updateStats();
+      drawAllPlots();
+      unlockControls();
+    }
+
+    function lockControls() {
+      kp.disabled = true;
+      ki.disabled = true;
+      kd.disabled = true;
+      kpNum.disabled = true;
+      kiNum.disabled = true;
+      kdNum.disabled = true;
+      setpoint.disabled = true;
+      setpointNum.disabled = true;
+    }
+
+    function unlockControls() {
+      kp.disabled = false;
+      ki.disabled = false;
+      kd.disabled = false;
+      kpNum.disabled = false;
+      kiNum.disabled = false;
+      kdNum.disabled = false;
+      setpoint.disabled = false;
+      setpointNum.disabled = false;
+    }
+
+    // -----------------------------
+    // Simulation step
+    // -----------------------------
+    function simulateStep() {
+      const Kp = parseFloat(kp.value);
+      const Ki = parseFloat(ki.value);
+      const Kd = parseFloat(kd.value);
+      const sp = parseFloat(setpoint.value);
+
+      const sun = sunlightEffect(simHour);
+      const wind = windEffect(simHour);
+
+      const error = sp - greenhouseTemp;
+
+      // Derivative on measurement
+      const measurementDerivative = (greenhouseTemp - previousTemp) / DT_HOURS;
+      previousTemp = greenhouseTemp;
+
+      filteredMeasurementDerivative =
+        DERIVATIVE_FILTER_ALPHA * filteredMeasurementDerivative +
+        (1 - DERIVATIVE_FILTER_ALPHA) * measurementDerivative;
+
+      const pTerm = Kp * error;
+      const dTerm = -Kd * filteredMeasurementDerivative;
+
+      let integralCandidate = integral + error * DT_HOURS;
+      integralCandidate = clamp(integralCandidate, INTEGRAL_MIN, INTEGRAL_MAX);
+
+      const uUnsatCandidate = pTerm + Ki * integralCandidate + dTerm;
+
+      let acceptIntegral = false;
+
+      if (uUnsatCandidate > -100 && uUnsatCandidate < 100) {
+        acceptIntegral = true;
+      } else if (uUnsatCandidate >= 100 && error < 0) {
+        acceptIntegral = true;
+      } else if (uUnsatCandidate <= -100 && error > 0) {
+        acceptIntegral = true;
+      }
+
+      if (acceptIntegral) {
+        integral = integralCandidate;
+      }
+
+      const uUnsat = pTerm + Ki * integral + dTerm;
+
+      heaterCommand = clamp(uUnsat, 0, 100);
+      coolerCommand = clamp(-uUnsat, 0, 100);
+
+      controlDelayQueueHeater.push(heaterCommand);
+      controlDelayQueueCooler.push(coolerCommand);
+
+      const delayedHeaterCmd = controlDelayQueueHeater.shift();
+      const delayedCoolerCmd = controlDelayQueueCooler.shift();
+
+      const actuatorAlpha = DT_HOURS / (ACTUATOR_TIME_CONSTANT_HR + DT_HOURS);
+      heaterActual += actuatorAlpha * (delayedHeaterCmd - heaterActual);
+      coolerActual += actuatorAlpha * (delayedCoolerCmd - coolerActual);
+
+      const heaterEffect =
+        HEATER_EFFECT_SCALE * HEATER_BASE_STRENGTH * (heaterActual / 100.0);
+
+      const coolerEffect =
+        COOLER_EFFECT_SCALE * COOLER_BASE_STRENGTH * (coolerActual / 100.0);
+
+      const passiveLoss = PASSIVE_LOSS_COEFF * (greenhouseTemp - AMBIENT_TEMP);
+
+      const dTdt =
+        (heaterEffect - coolerEffect - passiveLoss + sun + wind) * THERMAL_MASS_FACTOR;
+
+      greenhouseTemp += dTdt * DT_HOURS;
+
+      iae += Math.abs(error) * DT_HOURS;
+
+      const overshoot = Math.max(0, greenhouseTemp - sp);
+      overshootPenalty += overshoot * DT_HOURS;
+
+      controlEffort += (heaterActual + coolerActual) * DT_HOURS * 0.01;
+
+      totalCost =
+        1.0 * iae +
+        2.0 * overshootPenalty +
+        0.2 * controlEffort;
+
+      history.push({
+        t: simHour,
+        temp: greenhouseTemp,
+        setpoint: sp,
+        sun: sun,
+        wind: wind,
+        heater: heaterActual,
+        cooler: coolerActual
+      });
+
+      simHour += DT_HOURS;
+    }
+
+    // -----------------------------
+    // Stats
+    // -----------------------------
+    function updateStats() {
+      currentTempEl.textContent = greenhouseTemp.toFixed(2) + " °C";
+      currentSetpointEl.textContent = parseFloat(setpoint.value).toFixed(2) + " °C";
+      heaterOutputEl.textContent = heaterActual.toFixed(1) + " %";
+      coolerOutputEl.textContent = coolerActual.toFixed(1) + " %";
+      timeNowEl.textContent = Math.min(simHour, TOTAL_HOURS).toFixed(1) + " h";
+      iaeValueEl.textContent = iae.toFixed(2);
+      overshootValueEl.textContent = overshootPenalty.toFixed(2);
+      effortValueEl.textContent = controlEffort.toFixed(2);
+      costValueEl.textContent = totalCost.toFixed(2);
+      scoreValueEl.textContent = (10000 / (1 + totalCost)).toFixed(2);
+    }
+
+    // -----------------------------
+    // Plot helpers
+    // -----------------------------
+    function drawAxes(ctx, canvas, yMin, yMax, yLabel) {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const left = 55;
+      const right = 20;
+      const top = 20;
+      const bottom = 40;
+      const plotW = w - left - right;
+      const plotH = h - top - bottom;
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(left, top, plotW, plotH);
+
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(left, top, plotW, plotH);
+
+      for (let i = 0; i <= 6; i++) {
+        const y = top + (i / 6) * plotH;
+        ctx.strokeStyle = "#e5e7eb";
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + plotW, y);
+        ctx.stroke();
+
+        const val = yMax - (i / 6) * (yMax - yMin);
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "12px Arial";
+        ctx.fillText(val.toFixed(0), 10, y + 4);
+      }
+
+      for (let i = 0; i <= 8; i++) {
+        const x = left + (i / 8) * plotW;
+        ctx.strokeStyle = "#e5e7eb";
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, top + plotH);
+        ctx.stroke();
+
+        const hour = (i / 8) * 24;
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "12px Arial";
+        ctx.fillText(hour.toFixed(0), x - 6, top + plotH + 18);
+      }
+
+      ctx.fillStyle = "#111827";
+      ctx.font = "13px Arial";
+      ctx.fillText(yLabel, 8, 14);
+      ctx.fillText("Time (hours)", left + plotW / 2 - 30, h - 10);
+
+      return {
+        left, top, plotW, plotH,
+        xScale: (t) => left + (t / TOTAL_HOURS) * plotW,
+        yScale: (v) => top + ((yMax - v) / (yMax - yMin)) * plotH
+      };
+    }
+
+    function drawLine(ctx, data, xScale, yScale, getter, color, width = 2, dashed = false) {
+      if (data.length < 2) return;
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dashed ? [8, 5] : []);
+      ctx.beginPath();
+      for (let i = 0; i < data.length; i++) {
+        const x = xScale(data[i].t);
+        const y = yScale(getter(data[i]));
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawLegend(ctx, items, startX, startY) {
+      ctx.font = "12px Arial";
+      items.forEach((item, idx) => {
+        const y = startY + idx * 18;
+        ctx.save();
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = 3;
+        ctx.setLineDash(item.dashed ? [8, 5] : []);
+        ctx.beginPath();
+        ctx.moveTo(startX, y);
+        ctx.lineTo(startX + 20, y);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = "#111827";
+        ctx.fillText(item.label, startX + 28, y + 4);
+      });
+    }
+
+    // -----------------------------
+    // Plots
+    // -----------------------------
+    function drawMainPlot() {
+      const scales = drawAxes(mainCtx, mainCanvas, 10, 40, "Temp / Disturbance");
+      const { xScale, yScale, left, top } = scales;
+
+      const fullProfile = [];
+      for (let h = 0; h <= TOTAL_HOURS + 0.0001; h += DT_HOURS) {
+        fullProfile.push({
+          t: h,
+          sunScaled: 20 + sunlightEffect(h) * 2.0,
+          windScaled: 20 + windEffect(h) * 2.0
+        });
+      }
+
+      drawLine(mainCtx, fullProfile, xScale, yScale, p => p.sunScaled, "#f59e0b", 2, true);
+      drawLine(mainCtx, fullProfile, xScale, yScale, p => p.windScaled, "#64748b", 2, true);
+
+      drawLine(mainCtx, history, xScale, yScale, p => p.setpoint, "#dc2626", 2, false);
+      drawLine(mainCtx, history, xScale, yScale, p => p.temp, "#2563eb", 2.5, false);
+
+      drawLegend(mainCtx, [
+        { color: "#2563eb", label: "Temperature", dashed: false },
+        { color: "#dc2626", label: "Setpoint", dashed: false },
+        { color: "#f59e0b", label: "Sunlight Effect (scaled)", dashed: true },
+        { color: "#64748b", label: "Wind Effect (scaled)", dashed: true }
+      ], left + 10, top + 14);
+    }
+
+    function drawHeaterPlot() {
+      const scales = drawAxes(heaterCtx, heaterCanvas, 0, 100, "Heater (%)");
+      drawLine(heaterCtx, history, scales.xScale, scales.yScale, p => p.heater, "#ef4444", 2.5, false);
+      drawLegend(heaterCtx, [
+        { color: "#ef4444", label: "Heater Output", dashed: false }
+      ], scales.left + 10, scales.top + 14);
+    }
+
+    function drawCoolerPlot() {
+      const scales = drawAxes(coolerCtx, coolerCanvas, 0, 100, "Cooler (%)");
+      drawLine(coolerCtx, history, scales.xScale, scales.yScale, p => p.cooler, "#06b6d4", 2.5, false);
+      drawLegend(coolerCtx, [
+        { color: "#06b6d4", label: "Cooler Output", dashed: false }
+      ], scales.left + 10, scales.top + 14);
+    }
+
+    function drawAllPlots() {
+      drawMainPlot();
+      drawHeaterPlot();
+      drawCoolerPlot();
+    }
+
+    // -----------------------------
+    // Animation
+    // -----------------------------
+    function animate() {
+      if (!simRunning) {
+        drawAllPlots();
+        return;
+      }
+
+      for (let i = 0; i < STEPS_PER_FRAME; i++) {
+        if (!simRunning) break;
+
+        simulateStep();
+
+        if (simHour >= TOTAL_HOURS) {
+          simRunning = false;
+          unlockControls();
+          break;
+        }
+      }
+
+      updateStats();
+      drawAllPlots();
+
+      if (simRunning) {
+        animationId = requestAnimationFrame(animate);
+      }
+    }
+
+    // -----------------------------
+    // Buttons
+    // -----------------------------
+    startBtn.addEventListener("click", () => {
+      resetSimulation();
+      lockControls();
+      simRunning = true;
+      animationId = requestAnimationFrame(animate);
+    });
+
+    resetBtn.addEventListener("click", () => {
+      resetSimulation();
+    });
+
+    // -----------------------------
+    // Init
+    // -----------------------------
+    resetSimulation();
+  </script>
+</body>
+</html>
