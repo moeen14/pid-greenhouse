@@ -120,6 +120,15 @@ Hosted using **Cloudflare Workers**
 
 ---
 
+## 📌 Citation
+
+If you use this tool in research or teaching, please cite:
+
+Moeen Ul Islam, "Greenhouse PID Control Simulator", 2026.
+Available at: https://pid-greenhouse.moeen14-aiub.workers.dev/
+
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License — see the LICENSE file for details.
@@ -134,10 +143,3 @@ If you find this useful:
 - 🍴 Fork it  
 - 📢 Share with your class or lab
   
-
-## 📌 Citation
-
-If you use this tool in research or teaching, please cite:
-
-Moeen Ul Islam, "Greenhouse PID Control Simulator", 2026.
-Available at: https://pid-greenhouse.moeen14-aiub.workers.dev/
