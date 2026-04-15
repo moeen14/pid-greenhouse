@@ -132,4 +132,12 @@ If you find this useful:
 
 - ⭐ Star the repository  
 - 🍴 Fork it  
-- 📢 Share with your class or lab  
+- 📢 Share with your class or lab
+  
+
+## 📌 Citation
+
+If you use this tool in research or teaching, please cite:
+
+Moeen Ul Islam, "Greenhouse PID Control Simulator", 2026.
+Available at: https://pid-greenhouse.moeen14-aiub.workers.dev/
