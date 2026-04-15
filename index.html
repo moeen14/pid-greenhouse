@@ -12,6 +12,10 @@
       --muted: #6b7280;
       --border: #d1d5db;
       --accent: #2563eb;
+      --success-bg: #f0fdf4;
+      --success-border: #86efac;
+      --error-bg: #fef2f2;
+      --error-border: #fca5a5;
     }
 
     * { box-sizing: border-box; }
@@ -26,7 +30,7 @@
     .container {
       max-width: 1450px;
       margin: 20px auto;
-      padding: 0 16px;
+      padding: 0 16px 30px 16px;
     }
 
     h1 {
@@ -78,9 +82,17 @@
       flex: 1;
     }
 
-    input[type="number"] {
+    input[type="number"],
+    input[type="text"] {
       width: 95px;
-      padding: 6px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    input[type="text"] {
+      width: 100%;
     }
 
     button {
@@ -95,6 +107,11 @@
 
     button.secondary {
       background: #475569;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .button-row {
@@ -171,6 +188,70 @@
       font-size: 14px;
     }
 
+    .submission-card {
+      margin-top: 18px;
+    }
+
+    .submission-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .submission-field label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .submission-field input {
+      width: 100%;
+    }
+
+    .submission-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      align-items: center;
+    }
+
+    .status-box {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .status-box.success {
+      display: block;
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: #166534;
+    }
+
+    .status-box.error {
+      display: block;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: #991b1b;
+    }
+
+    .submission-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .submission-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 950px) {
       .grid {
         grid-template-columns: 1fr;
@@ -221,6 +302,30 @@
           </div>
         </div>
 
+        <div class="control-group">
+          <label for="initialTemp">Initial Temperature (°C)</label>
+          <div class="row">
+            <input type="range" id="initialTemp" min="10" max="40" step="0.5" value="25" />
+            <input type="number" id="initialTempNum" min="10" max="40" step="0.5" value="25" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="sunAmp">Sunlight Disturbance Amplitude (%)</label>
+          <div class="row">
+            <input type="range" id="sunAmp" min="0" max="200" step="1" value="100" />
+            <input type="number" id="sunAmpNum" min="0" max="200" step="1" value="100" />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="windAmp">Wind Disturbance Amplitude (%)</label>
+          <div class="row">
+            <input type="range" id="windAmp" min="0" max="200" step="1" value="100" />
+            <input type="number" id="windAmpNum" min="0" max="200" step="1" value="100" />
+          </div>
+        </div>
+
         <div class="button-row">
           <button id="startBtn">Start</button>
           <button id="resetBtn" class="secondary">Reset</button>
@@ -235,6 +340,8 @@
           Disturbance profile:
           <br>• Curved sunlight heating through the day
           <br>• Curved wind cooling around dawn and evening
+          <br>• Separate amplitude controls for sunlight and wind
+          <br>• Initial temperature can be changed before starting
           <br>• PID uses derivative on measurement with filtering and anti-windup integral
         </div>
 
@@ -314,12 +421,48 @@
         </div>
       </div>
     </div>
+
+    <div class="card submission-card">
+      <h2 class="section-title">Submission</h2>
+      <div class="instructions">
+        Enter your information and submit your final run result.
+      </div>
+
+      <div class="submission-grid">
+        <div class="submission-field">
+          <label for="studentName">Student Name <span style="color:#dc2626;">*</span></label>
+          <input type="text" id="studentName" placeholder="Enter full name" required />
+        </div>
+
+        <div class="submission-field">
+          <label for="netId">NetID <span style="color:#dc2626;">*</span></label>
+          <input type="text" id="netId" placeholder="Enter NetID" required />
+        </div>
+
+        <div class="submission-field">
+          <label for="studentId">Student ID <span style="color:#dc2626;">*</span></label>
+          <input type="text" id="studentId" placeholder="Enter Student ID" required />
+        </div>
+      </div>
+
+      <div class="submission-actions">
+        <button id="submitBtn">Submit Result</button>
+        <button id="downloadBtn" class="secondary">Download Result JSON</button>
+      </div>
+
+      <div id="submissionStatus" class="status-box"></div>
+
+      <div class="submission-note">
+        Submission includes: Name, NetID, Student ID, Kp, Ki, Kd, Setpoint, Initial Temp, sunlight amplitude, wind amplitude, Total Cost J, Score, and timestamp.
+      </div>
+    </div>
   </div>
 
+  <iframe name="submissionFrame" style="display:none;"></iframe>
+
   <script>
-    // =====================================================
-    // MAIN VARIABLES YOU MAY WANT TO CHANGE
-    // =====================================================
+    const SUBMISSION_ENDPOINT = "https://script.google.com/macros/s/AKfycbxCwbdg7A5NooLMB5rQVKGwgSPFmByfKZkockszd4fU_MrNzfWR0K7ban8J7kApQThf/exec";
+
     const RUN_DURATION_SECONDS = 10;
 
     const HEATER_EFFECT_SCALE = 10.0;
@@ -328,23 +471,19 @@
     const HEATER_BASE_STRENGTH = 2.0;
     const COOLER_BASE_STRENGTH = 2.0;
 
-    // Greenhouse dynamics
     const TOTAL_HOURS = 24.0;
-    const DT_HOURS = 0.02; // 1.2 min per step
+    const DT_HOURS = 0.02;
     const AMBIENT_TEMP = 20.0;
 
-    // Plant behavior
     const ACTUATOR_TIME_CONSTANT_HR = 0.35;
     const CONTROL_DELAY_HR = 0.35;
     const PASSIVE_LOSS_COEFF = 0.05;
     const THERMAL_MASS_FACTOR = 0.55;
 
-    // PID implementation
     const DERIVATIVE_FILTER_ALPHA = 0.7;
     const INTEGRAL_MIN = -150;
     const INTEGRAL_MAX = 150;
 
-    // Derived speed settings
     const TOTAL_STEPS = Math.ceil(TOTAL_HOURS / DT_HOURS);
     const TARGET_FPS = 60;
     const STEPS_PER_FRAME = Math.max(
@@ -355,9 +494,6 @@
 
     document.getElementById("runDurationLabel").textContent = RUN_DURATION_SECONDS;
 
-    // -----------------------------
-    // DOM
-    // -----------------------------
     const kp = document.getElementById("kp");
     const ki = document.getElementById("ki");
     const kd = document.getElementById("kd");
@@ -366,9 +502,23 @@
     const kdNum = document.getElementById("kdNum");
     const setpoint = document.getElementById("setpoint");
     const setpointNum = document.getElementById("setpointNum");
+    const initialTemp = document.getElementById("initialTemp");
+    const initialTempNum = document.getElementById("initialTempNum");
+
+    const sunAmp = document.getElementById("sunAmp");
+    const sunAmpNum = document.getElementById("sunAmpNum");
+    const windAmp = document.getElementById("windAmp");
+    const windAmpNum = document.getElementById("windAmpNum");
 
     const startBtn = document.getElementById("startBtn");
     const resetBtn = document.getElementById("resetBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    const studentName = document.getElementById("studentName");
+    const netId = document.getElementById("netId");
+    const studentId = document.getElementById("studentId");
+    const submissionStatus = document.getElementById("submissionStatus");
 
     const currentTempEl = document.getElementById("currentTemp");
     const currentSetpointEl = document.getElementById("currentSetpoint");
@@ -389,15 +539,29 @@
     const heaterCtx = heaterCanvas.getContext("2d");
     const coolerCtx = coolerCanvas.getContext("2d");
 
-    // -----------------------------
-    // Sync slider-number pairs
-    // -----------------------------
     function bindPair(slider, numberInput) {
       slider.addEventListener("input", () => {
         numberInput.value = slider.value;
+        if (!simRunning) {
+          if (slider === initialTemp) {
+            greenhouseTemp = parseFloat(initialTemp.value);
+            previousTemp = greenhouseTemp;
+          }
+          updateStats();
+          drawAllPlots();
+        }
       });
+
       numberInput.addEventListener("input", () => {
         slider.value = numberInput.value;
+        if (!simRunning) {
+          if (slider === initialTemp) {
+            greenhouseTemp = parseFloat(initialTemp.value);
+            previousTemp = greenhouseTemp;
+          }
+          updateStats();
+          drawAllPlots();
+        }
       });
     }
 
@@ -405,10 +569,10 @@
     bindPair(ki, kiNum);
     bindPair(kd, kdNum);
     bindPair(setpoint, setpointNum);
+    bindPair(initialTemp, initialTempNum);
+    bindPair(sunAmp, sunAmpNum);
+    bindPair(windAmp, windAmpNum);
 
-    // -----------------------------
-    // Helpers
-    // -----------------------------
     function clamp(v, min, max) {
       return Math.max(min, Math.min(max, v));
     }
@@ -417,27 +581,92 @@
       return amp * Math.exp(-0.5 * Math.pow((t - mu) / sigma, 2));
     }
 
-    // -----------------------------
-    // Curved disturbances
-    // -----------------------------
+    function getSunlightAmplitudeScale() {
+      return parseFloat(sunAmp.value) / 100.0;
+    }
+
+    function getWindAmplitudeScale() {
+      return parseFloat(windAmp.value) / 100.0;
+    }
+
+    function showSubmissionStatus(message, type) {
+      submissionStatus.textContent = message;
+      submissionStatus.className = "status-box " + type;
+    }
+
+    function clearSubmissionStatus() {
+      submissionStatus.textContent = "";
+      submissionStatus.className = "status-box";
+    }
+
+    function isSubmissionFormValid() {
+      return (
+        studentName.value.trim() !== "" &&
+        netId.value.trim() !== "" &&
+        studentId.value.trim() !== ""
+      );
+    }
+
+    function isEndpointConfigured() {
+      return SUBMISSION_ENDPOINT && SUBMISSION_ENDPOINT.startsWith("https://script.google.com/macros/s/");
+    }
+
+    function getSubmissionPayload() {
+      const score = 10000 / (1 + totalCost);
+
+      return {
+        studentName: studentName.value.trim(),
+        netId: netId.value.trim(),
+        studentId: studentId.value.trim(),
+        kp: parseFloat(kp.value),
+        ki: parseFloat(ki.value),
+        kd: parseFloat(kd.value),
+        setpoint: parseFloat(setpoint.value),
+        initialTemp: parseFloat(initialTemp.value),
+        sunlightAmplitudePercent: parseFloat(sunAmp.value),
+        windAmplitudePercent: parseFloat(windAmp.value),
+        currentTemperature: parseFloat(greenhouseTemp.toFixed(4)),
+        simulatedTimeHours: parseFloat(Math.min(simHour, TOTAL_HOURS).toFixed(4)),
+        iae: parseFloat(iae.toFixed(6)),
+        overshootPenalty: parseFloat(overshootPenalty.toFixed(6)),
+        controlEffort: parseFloat(controlEffort.toFixed(6)),
+        totalCostJ: parseFloat(totalCost.toFixed(6)),
+        score: parseFloat(score.toFixed(6)),
+        submittedAt: new Date().toISOString()
+      };
+    }
+
+    function downloadJSON(payload) {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const safeName = (payload.studentName || "student").replace(/[^a-z0-9]/gi, "_");
+      a.href = url;
+      a.download = `greenhouse_pid_submission_${safeName}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
     function sunlightEffect(hour) {
-      return gaussian(hour, 13.0, 3.0, 4.5);
+      return gaussian(hour, 13.0, 3.0, 4.5) * getSunlightAmplitudeScale();
     }
 
     function windEffect(hour) {
       const dawn = gaussian(hour, 6.0, 2.0, -2.8);
       const evening = gaussian(hour, 18.5, 2.2, -3.2);
-      return dawn + evening;
+      return (dawn + evening) * getWindAmplitudeScale();
     }
 
-    // -----------------------------
-    // State
-    // -----------------------------
     let simRunning = false;
     let animationId = null;
+    let lastRunCompleted = false;
 
     let simHour = 0.0;
-    let greenhouseTemp = 25.0;
+    let greenhouseTemp = parseFloat(initialTemp.value);
 
     let heaterCommand = 0.0;
     let coolerCommand = 0.0;
@@ -449,7 +678,7 @@
     let controlDelayQueueCooler = [];
 
     let integral = 0.0;
-    let previousTemp = 25.0;
+    let previousTemp = parseFloat(initialTemp.value);
     let filteredMeasurementDerivative = 0.0;
 
     let iae = 0.0;
@@ -459,15 +688,12 @@
 
     let history = [];
 
-    // -----------------------------
-    // Reset
-    // -----------------------------
     function resetSimulation() {
       simRunning = false;
       cancelAnimationFrame(animationId);
 
       simHour = 0.0;
-      greenhouseTemp = 25.0;
+      greenhouseTemp = parseFloat(initialTemp.value);
 
       heaterCommand = 0.0;
       coolerCommand = 0.0;
@@ -487,7 +713,9 @@
       totalCost = 0.0;
 
       history = [];
+      lastRunCompleted = false;
 
+      clearSubmissionStatus();
       updateStats();
       drawAllPlots();
       unlockControls();
@@ -502,6 +730,12 @@
       kdNum.disabled = true;
       setpoint.disabled = true;
       setpointNum.disabled = true;
+      initialTemp.disabled = true;
+      initialTempNum.disabled = true;
+      sunAmp.disabled = true;
+      sunAmpNum.disabled = true;
+      windAmp.disabled = true;
+      windAmpNum.disabled = true;
     }
 
     function unlockControls() {
@@ -513,11 +747,14 @@
       kdNum.disabled = false;
       setpoint.disabled = false;
       setpointNum.disabled = false;
+      initialTemp.disabled = false;
+      initialTempNum.disabled = false;
+      sunAmp.disabled = false;
+      sunAmpNum.disabled = false;
+      windAmp.disabled = false;
+      windAmpNum.disabled = false;
     }
 
-    // -----------------------------
-    // Simulation step
-    // -----------------------------
     function simulateStep() {
       const Kp = parseFloat(kp.value);
       const Ki = parseFloat(ki.value);
@@ -529,7 +766,6 @@
 
       const error = sp - greenhouseTemp;
 
-      // Derivative on measurement
       const measurementDerivative = (greenhouseTemp - previousTemp) / DT_HOURS;
       previousTemp = greenhouseTemp;
 
@@ -612,9 +848,6 @@
       simHour += DT_HOURS;
     }
 
-    // -----------------------------
-    // Stats
-    // -----------------------------
     function updateStats() {
       currentTempEl.textContent = greenhouseTemp.toFixed(2) + " °C";
       currentSetpointEl.textContent = parseFloat(setpoint.value).toFixed(2) + " °C";
@@ -628,9 +861,6 @@
       scoreValueEl.textContent = (10000 / (1 + totalCost)).toFixed(2);
     }
 
-    // -----------------------------
-    // Plot helpers
-    // -----------------------------
     function drawAxes(ctx, canvas, yMin, yMax, yLabel) {
       const w = canvas.width;
       const h = canvas.height;
@@ -727,9 +957,6 @@
       });
     }
 
-    // -----------------------------
-    // Plots
-    // -----------------------------
     function drawMainPlot() {
       const scales = drawAxes(mainCtx, mainCanvas, 10, 40, "Temp / Disturbance");
       const { xScale, yScale, left, top } = scales;
@@ -779,9 +1006,6 @@
       drawCoolerPlot();
     }
 
-    // -----------------------------
-    // Animation
-    // -----------------------------
     function animate() {
       if (!simRunning) {
         drawAllPlots();
@@ -795,7 +1019,9 @@
 
         if (simHour >= TOTAL_HOURS) {
           simRunning = false;
+          lastRunCompleted = true;
           unlockControls();
+          showSubmissionStatus("Simulation completed. You can now submit the result.", "success");
           break;
         }
       }
@@ -808,10 +1034,8 @@
       }
     }
 
-    // -----------------------------
-    // Buttons
-    // -----------------------------
-    startBtn.addEventListener("click", () => {
+        startBtn.addEventListener("click", () => {
+      clearSubmissionStatus();
       resetSimulation();
       lockControls();
       simRunning = true;
@@ -822,9 +1046,81 @@
       resetSimulation();
     });
 
-    // -----------------------------
-    // Init
-    // -----------------------------
+    submitBtn.addEventListener("click", () => {
+      clearSubmissionStatus();
+
+      if (simRunning) {
+        showSubmissionStatus("Please wait until the simulation finishes before submitting.", "error");
+        return;
+      }
+
+      if (!lastRunCompleted) {
+        showSubmissionStatus("Run the simulation first, then submit the result.", "error");
+        return;
+      }
+
+      if (!isSubmissionFormValid()) {
+        showSubmissionStatus("Name, NetID, and Student ID are mandatory before submission.", "error");
+        return;
+      }
+
+      if (!isEndpointConfigured()) {
+        showSubmissionStatus(
+          "Submission endpoint is not configured correctly.",
+          "error"
+        );
+        return;
+      }
+
+      const payload = getSubmissionPayload();
+      submitBtn.disabled = true;
+
+      try {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = SUBMISSION_ENDPOINT;
+        form.target = "submissionFrame";
+        form.style.display = "none";
+
+        Object.entries(payload).forEach(([key, value]) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+
+        showSubmissionStatus("Submission sent. Check the Google Sheet in 2–5 seconds.", "success");
+      } catch (error) {
+        showSubmissionStatus("Submission failed before reaching Apps Script.", "error");
+        console.error(error);
+      } finally {
+        setTimeout(() => {
+          submitBtn.disabled = false;
+        }, 1500);
+      }
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      if (!isSubmissionFormValid()) {
+        showSubmissionStatus("Fill in Name, NetID, and Student ID before downloading the result file.", "error");
+        return;
+      }
+
+      if (!lastRunCompleted) {
+        showSubmissionStatus("Run the simulation first, then download the result.", "error");
+        return;
+      }
+
+      const payload = getSubmissionPayload();
+      downloadJSON(payload);
+      showSubmissionStatus("Result JSON downloaded successfully.", "success");
+    });
+
     resetSimulation();
   </script>
 </body>
